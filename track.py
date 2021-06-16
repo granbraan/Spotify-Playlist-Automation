@@ -1,3 +1,5 @@
+import spotipy
+
 class Track:
     #Represents parts of songs on Spotify
 
@@ -7,7 +9,7 @@ class Track:
         self.artist = artist
         pass
 
-    def create_spotify_url(self):
+    def create_spotify_uri(self):
         return f"spotify:track:{self.id}"
 
     def __str__(self):
