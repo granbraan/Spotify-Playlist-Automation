@@ -1,1 +1,1 @@
-Software automation that handles spotify playlists. Adds new releases from artists in the playlist and recommended songs from spotify. Also generates a newly created playlist of songs from a specificed genre. Created in Python.
+Simple Spotify App that creates a new playlist of recommended songs or add to existing playlist.
