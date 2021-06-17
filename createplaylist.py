@@ -1,44 +1,59 @@
 import os
+
 import spotipy
+import json
 from spotipy.oauth2 import SpotifyOAuth
 
-from spotifyclient import SpotifyClient
+scope = 'playlist-modify-public user-read-recently-played'
+username = '22ng3bwo4cbdnf5b7nocchtfi'
 
-def main():
+token = SpotifyOAuth(scope=scope, username=username)
+spotify_object = spotipy.Spotify(auth_manager=token)
 
-    spotify_client = SpotifyClient(os.getenv("SPOTIFY_AUTHORIZATION_TOKEN"), 
-                                   os.getenv("SPOTIFY_USER_ID"))
-    
-    #get last played tracks
-    num_last_played_tracks = int(input("How many previous songs do you want to base the new playlist off of: "))
-    last_played_tracks = spotify_client.get_last_played_tracks(num_last_played_tracks)
+#make playlsit
+playlist_name = input("enter playlist name: ")
+playlist_desc = input("enter playlist descript: ")
 
-    print(f"\nPrevious {num_last_played_tracks} songs listened on Spotify: ")
-    for i, song in enumerate(last_played_tracks):
-        print(f"{i+1} - {song}")
-    
-    # choose which tracks to use as a seed to generate a playlist
-    indexes = input("\nEnter a list of up to 5 tracks you'd like to use as seeds. Use indexes separated by a space: ")
-    indexes = indexes.split()
-    seed_tracks = [last_played_tracks[int(index)-1] for index in indexes]
+spotify_object.user_playlist_create(user=username,
+ name=playlist_name, 
+ public=True,
+ description=playlist_desc)
 
-    # get recommended tracks based off seed tracks
-    recommended_tracks = spotify_client.get_track_recommendations(seed_tracks)
-    print("\nHere are the recommended tracks which will be included in your new playlist: ")
-    for index, track in enumerate(recommended_tracks):
-        print(f"{index+1}- {track}")
+list_of_tracks = []
 
-    # get playlist name from user and create playlist
-    playlist_name = input("\nWhat's the playlist name? ")
-    playlist_description = input("\nWhat's the playlist description?(Optional) ")
-    playlist_public = input("\nShould the playlsit be public or private? ")
-    playlist = spotify_client.create_playlist(playlist_name,playlist_description,playlist_public)
-    print(f"\nPlaylist '{playlist.name}' was created successfully.")
+#access and display recently played songs by user
+i = 0
+n = 3
 
-    # populate playlist with recommended tracks
-    spotify_client.populate_playlist(playlist, recommended_tracks)
-    print(f"\nRecommended tracks successfully uploaded to playlist '{playlist.name}'.")
+track_ids = []
 
+recently_played_songs = spotify_object.current_user_recently_played(limit=n)
+print(f"Last {n} Recently Played Songs are\n")
+while (i<n):
+    track_name = recently_played_songs['items'][i]['track']['name']
+    track_id = recently_played_songs['items'][0]['track']['id']
+    track_artist = recently_played_songs['items'][i]['track']['album']['artists'][0]['name']
 
-if __name__ == "__main__":
-    main()
+    print(f"{i+1}. " + track_name + " by " + track_artist)
+    i = i + 1
+
+    track_ids.append(track_id)
+
+#get recommended songs based on tracks
+num_recommended_songs = input("How many songs recommendations do you want?(min:1 max:100) ")
+recommended_songs = spotify_object.recommendations(seed_tracks=track_ids, limit=int(num_recommended_songs))
+
+for i in range(int(num_recommended_songs)):
+    rs_track = recommended_songs['tracks'][i]['name']
+    rs_artist = recommended_songs['tracks'][i]['album']['artists'][0]['name']
+    rs_uri = recommended_songs['tracks'][i]['uri']
+    list_of_tracks.append(rs_uri)
+
+    print(f"{i+1}." + rs_artist + " - " + rs_track)
+
+#find new generatedplaylist
+prePlaylist = spotify_object.user_playlists(user=username)
+playlist = prePlaylist['items'][0]['id']
+
+#add list of songs to the playlist
+spotify_object.user_playlist_add_tracks(user=username,playlist_id=playlist,tracks=list_of_tracks)
